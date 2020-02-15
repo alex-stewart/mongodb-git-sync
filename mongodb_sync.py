@@ -12,7 +12,28 @@ parser.add_argument('git_repository', type=str, help='a git repository to sync')
 parser.add_argument('mongo_database', type=str, help='the mongodb database')
 parser.add_argument('-m', '--mongo_host', type=str, help='mongodb hostname', default='localhost')
 parser.add_argument('-p', '--mongo_port', type=int, help='mongodb port', default=27017)
+parser.add_argument('-u', '--mongo_username', type=str, help='monogdb username')
+parser.add_argument('-a', '--mongo_password', type=str, help='mongodb password')
 args = parser.parse_args()
+
+# Connect to MongoDB
+mongo_host = args.mongo_host
+mongo_port = args.mongo_port
+mongo_db = args.mongo_database
+mongo_username = args.mongo_username
+mongo_password = args.mongo_password
+
+client = None
+if mongo_username and mongo_password:
+    print('Connecting to MongoDB database with auth:', mongo_host, mongo_port, mongo_db)
+    client = MongoClient(mongo_host, mongo_port, username=mongo_username, password=mongo_password)
+elif mongo_password or mongo_username:
+    print('Error, must specify both username and password')
+    exit()
+else:
+    print('Connecting to MongoDB database:', mongo_host, mongo_port, mongo_db)
+    client = MongoClient(mongo_host, mongo_port)
+database = client[mongo_db]
 
 # Clone repository
 temp_dir = tempfile.mkdtemp()
@@ -51,14 +72,6 @@ for dir_name in files:
 
     print('Loaded', len(documents_of_type), 'documents of type', document_type)
     documents[document_type] = documents_of_type
-
-# Connect to MongoDB
-mongo_host = args.mongo_host
-mongo_port = args.mongo_port
-mongo_db = args.mongo_database
-print('Connecting to MongoDB database:', mongo_host, mongo_port, mongo_db)
-client = MongoClient(mongo_host, mongo_port)
-database = client[mongo_db]
 
 # Write documents to database
 print('Inserting documents into database')
