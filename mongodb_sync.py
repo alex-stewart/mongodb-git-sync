@@ -59,11 +59,11 @@ for dir_name in files:
 mongo_host = args.mongo_host
 mongo_port = args.mongo_port
 mongo_db = args.mongo_database
-mongo_username = args.mongo_auth[0]
-mongo_password = args.mongo_auth[1]
 
 client = None
-if mongo_username and mongo_password:
+if args.mongo_auth is not None:
+    mongo_username = args.mongo_auth[0]
+    mongo_password = args.mongo_auth[1]
     print('Connecting to MongoDB database with auth:', mongo_host, mongo_port, mongo_db)
     client = MongoClient(mongo_host, mongo_port, username=mongo_username, password=mongo_password)
 else:
