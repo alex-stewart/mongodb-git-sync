@@ -12,28 +12,9 @@ parser.add_argument('git_repository', type=str, help='a git repository to sync')
 parser.add_argument('mongo_database', type=str, help='the mongodb database')
 parser.add_argument('-m', '--mongo_host', type=str, help='mongodb hostname', default='localhost')
 parser.add_argument('-p', '--mongo_port', type=int, help='mongodb port', default=27017)
-parser.add_argument('-u', '--mongo_username', type=str, help='monogdb username')
-parser.add_argument('-a', '--mongo_password', type=str, help='mongodb password')
+parser.add_argument('-a', '--mongo_auth', nargs=2, metavar=('MONGO_USERNAME', 'MONGO_PASSWORD'),
+                    help='monogdb username and password')
 args = parser.parse_args()
-
-# Connect to MongoDB
-mongo_host = args.mongo_host
-mongo_port = args.mongo_port
-mongo_db = args.mongo_database
-mongo_username = args.mongo_username
-mongo_password = args.mongo_password
-
-client = None
-if mongo_username and mongo_password:
-    print('Connecting to MongoDB database with auth:', mongo_host, mongo_port, mongo_db)
-    client = MongoClient(mongo_host, mongo_port, username=mongo_username, password=mongo_password)
-elif mongo_password or mongo_username:
-    print('Error, must specify both username and password')
-    exit()
-else:
-    print('Connecting to MongoDB database:', mongo_host, mongo_port, mongo_db)
-    client = MongoClient(mongo_host, mongo_port)
-database = client[mongo_db]
 
 # Clone repository
 temp_dir = tempfile.mkdtemp()
@@ -55,6 +36,7 @@ for dir_name, dir_names, file_names in os.walk(temp_dir):
                 files[dir_name].append(file_name)
             else:
                 files[dir_name] = [file_name]
+print(files)
 
 # Read json files as dictionaries
 print('Loading files to sync')
@@ -73,10 +55,27 @@ for dir_name in files:
     print('Loaded', len(documents_of_type), 'documents of type', document_type)
     documents[document_type] = documents_of_type
 
+# Connect to MongoDB
+mongo_host = args.mongo_host
+mongo_port = args.mongo_port
+mongo_db = args.mongo_database
+mongo_username = args.mongo_auth[0]
+mongo_password = args.mongo_auth[1]
+
+client = None
+if mongo_username and mongo_password:
+    print('Connecting to MongoDB database with auth:', mongo_host, mongo_port, mongo_db)
+    client = MongoClient(mongo_host, mongo_port, username=mongo_username, password=mongo_password)
+else:
+    print('Connecting to MongoDB database:', mongo_host, mongo_port, mongo_db)
+    client = MongoClient(mongo_host, mongo_port)
+database = client[mongo_db]
+
 # Write documents to database
 print('Inserting documents into database')
 for document_type in documents:
     print('Populating collection', document_type)
     database[document_type].drop()
+    print(documents[document_type])
     database[document_type].insert_many(documents[document_type])
 print('Completed insert')
